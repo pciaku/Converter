@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="CONVERTER">
+ <PROG NAME="ZGLXX_PRO_RE_BUILDER_PATTERN" VARCL="X" SUBC="1" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130220" VERN="000034" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130220" STIME="162415" IDATE="20130220" ITIME="162415" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Example of Builder Pattern Implementation" LENGTH="41 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZGLXX_PRO_RE_BUILDER_PATTERN
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+report  zglxx_pro_re_builder_pattern.
+
+
+include zglxx_pro_in_product.
+include zglxx_pro_in_formatted_part.
+include zglxx_pro_in_builder.
+
+include zglxx_pro_in_product_im.
+include zglxx_pro_in_formatted_part_im.
+include zglxx_pro_in_builder_im.
+
+data lv_data       type string.
+data lr_builder    type ref to lcl_builder.
+data lr_subbuilder type ref to lcl_builder.
+data lr_product    type ref to lcl_product.
+
+
+start-of-selection.
+  concatenate
+  &apos;Do I/we...&apos;
+  &apos;... collaborate?&apos;
+  &apos;... communicate openly ?&apos;
+  &apos;... share ideas?&apos;
+  &apos;... leverage knowledge?&apos;
+  &apos;... have a focus outside and inside (about customers, partners)?&apos;
+  into lv_data separated by cl_abap_char_utilities=&gt;newline.
+
+* product
+  create object lr_product type lcl_product20.
+  &quot; char
+  create object lr_subbuilder type lcl_builder_char.
+  &quot; word
+  create object lr_builder
+    type
+      lcl_builder_word
+    exporting
+      ir_subbuilder    = lr_subbuilder.
+
+  lr_subbuilder = lr_builder.
+  &quot; line
+  create object lr_builder
+    type
+      lcl_builder_line
+    exporting
+      ir_subbuilder    = lr_subbuilder.
+
+  lr_builder-&gt;build_product( exporting ip_text = lv_data
+                             changing  cr_product = lr_product ).
+
+  &quot; check lr_product-&gt;product here in debug mode
+  break-point.</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_PRODUCT" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130214" VERN="000018" RMAND="200" RLOAD="E" SDATE="20130214" STIME="122742" IDATE="20130214" ITIME="122742" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Product" LENGTH="7 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_PRODUCT
+*&amp;---------------------------------------------------------------------*
+
+class lcl_formatted_part definition deferred.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_product DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_product definition abstract.
+  public section.
+    methods: add_part           importing ir_part type ref to lcl_formatted_part
+                                returning value(rp_added) type flag,
+             finalize_part.
+
+  protected section.
+    methods  get_max_buffer_length abstract returning value(rp_len) type i.
+
+  private section.
+    data     product type table of string.
+    data     buffer  type string.
+
+    methods: is_fitting_buffer     importing ir_part type ref to lcl_formatted_part
+                                   returning value(rp_fits) type flag,
+             is_fitting_new_buffer importing ir_part type ref to lcl_formatted_part
+                                   returning value(rp_fits) type flag,
+             add_to_buffer         importing ir_part type ref to lcl_formatted_part,
+             add_to_new_buffer     importing ir_part type ref to lcl_formatted_part.
+
+endclass.                    &quot;lcl_product DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_product20 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_product20 definition inheriting from lcl_product.
+  protected section.
+    methods get_max_buffer_length redefinition.
+endclass.                    &quot;lcl_product20 DEFINITION</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_FORMATTED_PART" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130220" VERN="000019" RMAND="200" RLOAD="E" SDATE="20130220" STIME="161609" IDATE="20130220" ITIME="161609" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Formatted Part" LENGTH="14 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_FORMATTED_PART
+*&amp;---------------------------------------------------------------------*
+
+class lcl_builder definition deferred.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part definition abstract.
+  public section.
+    types tt_formatted_parts type table of ref to lcl_formatted_part with default key.
+
+    methods: constructor     importing ip_text type string,
+             get_formatted   returning value(rp_formatted) type string,
+             get_length      returning value(rp_len) type i,
+             finalize        importing ir_product type ref to lcl_product,
+             get_separator   returning value(rp_sep) type string.
+    class-methods: get_parts importing ir_builder type ref to lcl_builder
+                                       ip_text    type string
+                             returning value(rt_formatted_parts) type tt_formatted_parts.
+  protected section.
+    methods  parse  abstract importing ir_builder type ref to lcl_builder
+                                       ip_text    type string
+                             returning value(rt_formatted_parts) type tt_formatted_parts.
+  private section.
+    data formatted type string.
+endclass.                    &quot;lcl_formatted_part DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_line DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_line definition inheriting from lcl_formatted_part.
+  public section.
+    methods finalize redefinition.
+  protected section.
+    methods parse redefinition.
+endclass.                    &quot;lcl_formatted_part_line DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_word DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_word definition inheriting from lcl_formatted_part.
+  public section.
+    methods finalize redefinition.
+  protected section.
+    methods parse redefinition.
+endclass.                    &quot;lcl_formatted_part_word DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_char DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_char definition inheriting from lcl_formatted_part.
+  public section.
+    methods get_separator redefinition.
+  protected section.
+    methods parse redefinition.
+endclass.                    &quot;lcl_formatted_part_char DEFINITION</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_BUILDER" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130123" VERN="000022" RMAND="200" RLOAD="E" SDATE="20130123" STIME="155332" IDATE="20130123" ITIME="155332" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Builder" LENGTH="7 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_BUILDER
+*&amp;---------------------------------------------------------------------*
+
+class lcl_builder definition abstract friends lcl_formatted_part.
+  public section.
+    methods: constructor   importing value(ir_subbuilder) type ref to lcl_builder OPTIONAL,
+             build_product importing ip_text              type string
+                           changing  value(cr_product)    type ref to lcl_product.
+
+  protected section.
+    methods: get_formatted_type abstract
+                                importing ip_text type string
+                                returning value(rr_formatted_type) type ref to lcl_formatted_part.
+
+  private section.
+    data: product    type ref to lcl_product,
+          subbuilder type ref to lcl_builder.
+
+    methods: add_part           importing ir_part    type ref to lcl_formatted_part,
+             parse_to_formatted importing ip_text    type string
+                                returning value(rt_formatted_part) type lcl_formatted_part=&gt;tt_formatted_parts.
+endclass.                    &quot;lcl_builder DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_line DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_line definition inheriting from lcl_builder.
+  protected section.
+    methods get_formatted_type redefinition.
+endclass.                    &quot;lcl_builder_line DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_word DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_word definition inheriting from lcl_builder.
+  protected section.
+    methods get_formatted_type redefinition.
+endclass.                    &quot;lcl_builder_word DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_char DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_char definition inheriting from lcl_builder.
+  protected section.
+    methods get_formatted_type redefinition.
+endclass.                    &quot;lcl_builder_char DEFINITION</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_PRODUCT_IM" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130220" VERN="000033" RMAND="200" RLOAD="E" SDATE="20130220" STIME="162105" IDATE="20130220" ITIME="162105" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Product Implemenations" LENGTH="22 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_PRODUCT_IM
+*&amp;---------------------------------------------------------------------*
+
+class lcl_product implementation.
+  method add_part.
+    rp_added = &apos;X&apos;.
+* fits buffer
+    if is_fitting_buffer( ir_part ) = &apos;X&apos;.
+      add_to_buffer( ir_part ).
+    else.
+*  fits empty buffer
+      if is_fitting_new_buffer( ir_part ) = &apos;X&apos;.
+        add_to_new_buffer( ir_part ).
+      else.
+        clear rp_added.
+      endif.
+    endif.
+  endmethod.                    &quot;add_part
+
+  method add_to_buffer.
+    data lv_formatted type string.
+    data lv_sep       type string.
+
+    lv_formatted = ir_part-&gt;get_formatted( ).
+    lv_sep = ir_part-&gt;get_separator( ).
+    if buffer is initial.
+      buffer = lv_formatted.
+    else.
+      concatenate buffer lv_formatted into buffer separated by lv_sep.
+    endif.
+  endmethod.                    &quot;add_to_buffer
+
+  method add_to_new_buffer.
+    append buffer to product.
+    clear buffer.
+    buffer = ir_part-&gt;get_formatted( ).
+  endmethod.                    &quot;add_to_new_buffer
+
+  method finalize_part.
+    if buffer is not initial.
+      append buffer to product.
+      clear buffer.
+    endif.
+  endmethod.                    &quot;finalize_part
+
+  method is_fitting_buffer.
+    data lv_buff_len type i.
+    data lv_part_len type i.
+    data lv_sep_len  type i.
+    data lv_max_len  type i.
+    data lv_sep      type string.
+
+    lv_max_len = get_max_buffer_length( ).
+
+    lv_buff_len = strlen( buffer ).
+    lv_part_len = ir_part-&gt;get_length( ).
+    add lv_part_len to lv_buff_len.
+*  include separator only if buffer is already filled
+    if buffer is not initial.
+      lv_sep = ir_part-&gt;get_separator( ).
+      lv_sep_len  = strlen( lv_sep ).
+      add lv_sep_len  to lv_buff_len.
+    endif.
+
+    if lv_buff_len &lt;= lv_max_len.
+      rp_fits = &apos;X&apos;.
+    endif.
+  endmethod.                    &quot;is_fitting_buffer
+
+  method is_fitting_new_buffer.
+    data lv_max_len  type i.
+    lv_max_len = get_max_buffer_length( ).
+
+    if ir_part-&gt;get_length( ) &lt;= lv_max_len.
+      rp_fits = &apos;X&apos;.
+    endif.
+  endmethod.                    &quot;is_fitting
+endclass.                    &quot;lcl_product IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_product20 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_product20 implementation.
+  method get_max_buffer_length.
+    rp_len = 6.
+  endmethod.                    &quot;get_max_buffer_length
+endclass.                    &quot;lcl_product20 DEFINITION</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_FORMATTED_PART_IM" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130220" VERN="000024" RMAND="200" RLOAD="E" SDATE="20130220" STIME="161812" IDATE="20130220" ITIME="161812" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Formatted Part Impl" LENGTH="19 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_FORMATTED_PART_IM
+*&amp;---------------------------------------------------------------------*
+
+class lcl_formatted_part implementation.
+  method constructor.
+    formatted = ip_text.
+  endmethod.                    &quot;constructor
+
+  method get_formatted.
+    rp_formatted = formatted.
+  endmethod.                    &quot;get_formatted
+
+  method get_length.
+    rp_len = strlen( formatted ).
+  endmethod.                    &quot;get_length
+
+  method get_separator.
+    rp_sep = ` `.
+  endmethod.                    &quot;get_separator
+
+  method get_parts.
+* delegate parse task to specific formatted_part instance that buiilder returns
+    data lr_formatted_part type ref to lcl_formatted_part.
+
+    lr_formatted_part = ir_builder-&gt;get_formatted_type( ip_text ).
+*  parse method requires builder as well
+    rt_formatted_parts = lr_formatted_part-&gt;parse( ir_builder = ir_builder
+                                                   ip_text    = ip_text ).
+  endmethod.                    &quot;get_parts
+
+  method finalize.
+* by default we don&apos;t want the Part be finalized in any way
+  endmethod.                    &quot;add_to_product
+endclass.                    &quot;lcl_formatted_part IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_line IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_line implementation.
+  method finalize.
+    ir_product-&gt;finalize_part( ).
+  endmethod.                    &quot;add_to_product
+
+  method parse.
+    data  lr_formatted_part type ref to lcl_formatted_part.
+    data: lt_splitted type string_table,
+          lv_splitted type string.
+
+    split ip_text at cl_abap_char_utilities=&gt;newline into table lt_splitted.
+    loop at lt_splitted into lv_splitted.
+*  here we utilize builder to create same type objects with new parsed text
+      lr_formatted_part = ir_builder-&gt;get_formatted_type( lv_splitted ).
+      append lr_formatted_part to rt_formatted_parts.
+    endloop.
+  endmethod.                    &quot;parse
+endclass.                    &quot;lcl_formatted_part_line IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_word IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_word implementation.
+  method finalize.
+    ir_product-&gt;finalize_part( ).
+  endmethod.                    &quot;add_to_product
+
+  method parse.
+    data  lr_formatted_part type ref to lcl_formatted_part.
+    data: lt_splitted type string_table,
+          lv_splitted type string.
+
+    split ip_text at ` ` into table lt_splitted.
+    loop at lt_splitted into lv_splitted.
+*  here we utilize builder to create same type objects with new parsed text
+      lr_formatted_part = ir_builder-&gt;get_formatted_type( lv_splitted ).
+      append lr_formatted_part to rt_formatted_parts.
+    endloop.
+  endmethod.                    &quot;parse
+endclass.                    &quot;lcl_formatted_part_word IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_formatted_part_char IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_formatted_part_char implementation.
+  method parse.
+    data  lr_formatted_part type ref to lcl_formatted_part.
+    data lv_len  type i.
+    data lv_off  type i.
+    data lv_char type string.
+
+    lv_len = strlen( ip_text ).
+    do lv_len times.
+      lv_off = sy-index - 1.
+      lv_char = ip_text+lv_off(1).
+      lr_formatted_part = ir_builder-&gt;get_formatted_type( lv_char ).
+      append lr_formatted_part to rt_formatted_parts.
+    enddo.
+  endmethod.                    &quot;parse
+
+  method get_separator.
+  endmethod.                    &quot;get_separator
+endclass.                    &quot;lcl_formatted_part_char IMPLEMENTATION</source>
+ </PROG>
+ <PROG NAME="ZGLXX_PRO_IN_BUILDER_IM" VARCL="X" SUBC="I" CNAM="@MARCINP" CDAT="20130121" UNAM="@MARCINP" UDAT="20130220" VERN="000035" RMAND="200" RLOAD="E" SDATE="20130220" STIME="162104" IDATE="20130220" ITIME="162104" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Builder Impl" LENGTH="12 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp;  Include           ZGLXX_PRO_IN_BUILDER_IM
+*&amp;---------------------------------------------------------------------*
+
+class lcl_builder implementation.
+  method constructor.
+    subbuilder = ir_subbuilder.
+  endmethod.                    &quot;constructor
+
+  method build_product.
+    data lt_formatted_parts type table of ref to lcl_formatted_part.
+    data lr_formatted_part  type ref to lcl_formatted_part.
+
+    product = cr_product.
+
+    lt_formatted_parts = parse_to_formatted( ip_text ).
+    loop at lt_formatted_parts into lr_formatted_part.
+      add_part( lr_formatted_part ).
+      lr_formatted_part-&gt;finalize( product ).
+    endloop.
+  endmethod.                    &quot;build_product
+
+  method add_part.
+    data lv_text type string.
+
+    if product-&gt;add_part( ir_part ) = space.
+*      current formatted cannot be added, delegate this to subbuilder
+      if subbuilder is bound.
+        lv_text = ir_part-&gt;get_formatted( ).
+        subbuilder-&gt;build_product( exporting ip_text = lv_text
+                                   changing  cr_product = product ).
+      else.
+*       can&apos;t divide smalles possible entity
+        exit.
+      endif.
+    endif.
+  endmethod.                    &quot;build_part
+
+  method parse_to_formatted.
+    rt_formatted_part = lcl_formatted_part=&gt;get_parts( ir_builder = me
+                                                       ip_text    = ip_text ).
+  endmethod.                    &quot;parse_to_formatted
+endclass.                    &quot;lcl_builder IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_line IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_line implementation.
+  method get_formatted_type.
+    create object rr_formatted_type
+      type
+        lcl_formatted_part_line
+      exporting
+        ip_text                 = ip_text.
+  endmethod.                    &quot;get_formatted_type
+endclass.                    &quot;lcl_builder_line DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_word IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_word implementation.
+  method get_formatted_type.
+    create object rr_formatted_type
+      type
+        lcl_formatted_part_word
+      exporting
+        ip_text                 = ip_text.
+  endmethod.                    &quot;get_formatted_type
+endclass.                    &quot;lcl_builder_line DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_builder_char IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class lcl_builder_char implementation.
+  method get_formatted_type.
+    create object rr_formatted_type
+      type
+        lcl_formatted_part_char
+      exporting
+        ip_text                 = ip_text.
+  endmethod.                    &quot;get_formatted_type
+endclass.                    &quot;lcl_builder_line DEFINITION</source>
+ </PROG>
+</nugget>
